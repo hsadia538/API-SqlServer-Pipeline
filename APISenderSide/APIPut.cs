@@ -25,36 +25,20 @@ namespace APISenderSide
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-
-
-            var client = new HttpClient();
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-
-
             string messageBody = await new StreamReader(req.Body).ReadToEndAsync();
-            //HttpRequestModel httpRequestModel = JsonConvert.DeserializeObject<HttpRequestModel>(req);
-
-            var httpRequestMessage = new HttpRequestMessage()
+            var message = new Message(Encoding.UTF8.GetBytes(messageBody))
             {
-                Method = HttpMethod.Post,
-                RequestUri = new Uri("https://jsonplaceholder.typicode.com/posts"),
-                Content = new StringContent(messageBody)
+
+                CorrelationId = "4"
             };
 
-
-            string Myjson = JsonConvert.SerializeObject(httpRequestMessage);
-
             topicClient = new TopicClient(ServiceBusConnectionString, TopicName);
-
-            var message = new Message(Encoding.UTF8.GetBytes(Myjson));
-
             await topicClient.SendAsync(message);
-
-
             await topicClient.CloseAsync();
 
-
+            Console.WriteLine(message);
             return new OkObjectResult("Done");
         }
     }

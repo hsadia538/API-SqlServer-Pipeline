@@ -25,16 +25,16 @@ namespace APISenderSide
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-
             log.LogInformation("C# HTTP trigger function processed a request.");
 
             string messageBody = await new StreamReader(req.Body).ReadToEndAsync();
-          
+            var message = new Message(Encoding.UTF8.GetBytes(messageBody))
+            {
+
+                CorrelationId = "1"
+            };
 
             topicClient = new TopicClient(ServiceBusConnectionString, TopicName);
-
-             var message = new Message(Encoding.UTF8.GetBytes(messageBody));
-
             await topicClient.SendAsync(message);
             await topicClient.CloseAsync();
 

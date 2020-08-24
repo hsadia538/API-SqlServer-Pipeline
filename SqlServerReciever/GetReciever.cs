@@ -8,6 +8,8 @@ using Newtonsoft.Json.Linq;
 using System.Data;
 using System.Net.Http;
 using Newtonsoft.Json;
+using Commons;
+using System.Security.Cryptography.X509Certificates;
 
 namespace RecieveFromTopic
 {
@@ -19,8 +21,7 @@ namespace RecieveFromTopic
         {
             SqlCommand cmd;
             SqlConnection con;
-            SqlDataAdapter da;
-
+            
 
             log.LogInformation($"C# ServiceBus topic trigger function processed message: {mySbMsg}");
 
@@ -28,8 +29,8 @@ namespace RecieveFromTopic
             var httpRequestMessage = new HttpRequestMessage()
             {
                 Method = HttpMethod.Get,
-                RequestUri = new Uri("https://jsonplaceholder.typicode.com/"+mySbMsg),
-                
+                RequestUri = new Uri("https://jsonplaceholder.typicode.com/" + mySbMsg),
+
             };
 
             HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
@@ -41,11 +42,14 @@ namespace RecieveFromTopic
             //loop through the JsonArray
             foreach (var s in JsonItem)
             {
-               
+
                 var Uid = s.userId;
                 var id = s.id;
-                var title = s.title.ToString();
-                var body =s.body.ToString();
+                var title = s.title;
+                var body = s.body;
+                var sq = new Sql();
+                //Console.WriteLine($"the vars are {Uid} and {id} and {body} and {title}");
+                sq.InsertToTable(Uid, id, title, body);
 
                 //Get the connection made with SQL Server
                 con = new SqlConnection(@"Data Source=DESKTOP-N2E41F3;Initial Catalog=Company;Integrated Security=True;MultipleActiveResultSets=True");
