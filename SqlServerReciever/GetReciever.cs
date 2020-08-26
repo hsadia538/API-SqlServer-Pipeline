@@ -1,15 +1,9 @@
-using Microsoft.Azure.Documents.SystemFunctions;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Data.SqlClient;
-using System.Data.Sql;
-using Newtonsoft.Json.Linq;
-using System.Data;
 using System.Net.Http;
 using Newtonsoft.Json;
 using Commons;
-using System.Security.Cryptography.X509Certificates;
 
 namespace RecieveFromTopic
 {
@@ -19,9 +13,6 @@ namespace RecieveFromTopic
         [FunctionName("GetReciever")]
         public static async void Run([ServiceBusTrigger("practicetopic", "sub1", Connection = "MyServiceBus")] string mySbMsg, ILogger log)
         {
-            SqlCommand cmd;
-            SqlConnection con;
-            
 
             log.LogInformation($"C# ServiceBus topic trigger function processed message: {mySbMsg}");
 
@@ -39,32 +30,22 @@ namespace RecieveFromTopic
             log.LogInformation(responseBody);
 
             dynamic JsonItem = JsonConvert.DeserializeObject(responseBody);
-            //loop through the JsonArray
+
+            //loop through the JsonArray  
             foreach (var s in JsonItem)
             {
+                
+                int Uid = s.userId;
+                int id = s.id;
+                string title = s.title.ToString();
+               string body = s.body.ToString();
 
-                var Uid = s.userId;
-                var id = s.id;
-                var title = s.title;
-                var body = s.body;
-                var sq = new Sql();
-                //Console.WriteLine($"the vars are {Uid} and {id} and {body} and {title}");
-                sq.InsertToTable(Uid, id, title, body);
-
-                //Get the connection made with SQL Server
-                con = new SqlConnection(@"Data Source=DESKTOP-N2E41F3;Initial Catalog=Company;Integrated Security=True;MultipleActiveResultSets=True");
-                con.Open();
-
-                //Insert the data in SQL tables called Res
-                cmd = new SqlCommand("INSERT INTO Res(UserId,Id,Title,Body) VALUES ( @UId,@Id,@Title,@Body)", con);
-
-                //Binding Parameters
-                cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
-                cmd.Parameters.Add("@UId", SqlDbType.Int).Value = Uid;
-                cmd.Parameters.Add("@Title", SqlDbType.VarChar).Value = title;
-                cmd.Parameters.Add("@Body", SqlDbType.VarChar).Value = body;
-                cmd.ExecuteNonQuery();
+                //Make and sql object for insertion
+                var sqlOb = new Sql();
+                sqlOb.InsertToTable(Uid, id, title, body);
+                sqlOb.ConClose();
             }
+            Console.WriteLine("done");
         }
     }
 }

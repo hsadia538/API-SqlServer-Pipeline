@@ -1,65 +1,73 @@
 using System;
-using System.Data;
-using System.Data.SqlClient;
 using System.Net.Http;
+using System.Text;
+using Commons;
+using Microsoft.Azure.ServiceBus;
+using Microsoft.Azure.ServiceBus.Core;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+
 
 namespace SqlServerReciever
 {
     public static class GetSpecificReciever
     {
+
+        
+    
         [FunctionName("GetSpecificReciever")]
-        public static async void Run([ServiceBusTrigger("practicetopic", "sub2", Connection = "MyServiceBus")] string mySbMsg, ILogger log)
+        public static void Run([ServiceBusTrigger("practicetopic", "sub2", Connection = "MyServiceBus")] Message message, ILogger log, MessageReceiver messageReceiver)
         {
-            SqlCommand cmd;
-            SqlConnection con;
-           
-
-            log.LogInformation($"C# ServiceBus topic trigger function processed message: {mySbMsg}");
-
-            var client = new HttpClient();
-            var httpRequestMessage = new HttpRequestMessage()
+            try
             {
-                Method = HttpMethod.Get,
-                RequestUri = new Uri("https://jsonplaceholder.typicode.com/" + mySbMsg),
 
-            };
+                string mySbMsg = Encoding.UTF8.GetString(message.Body);
+               
+              
+               
 
-            HttpResponseMessage response = await client.SendAsync(httpRequestMessage);
-
-            string responseBody = await response.Content.ReadAsStringAsync();
-            log.LogInformation(responseBody);
-
-            dynamic JsonItem = JsonConvert.DeserializeObject(responseBody);
-            //loop through the JsonArray
+                log.LogInformation($"C# ServiceBus topic trigger function processed message: {message}");
 
 
-            var Uid = JsonItem.userId;
-            var id = JsonItem.id;
-            var title = JsonItem.title.ToString();
-            var body = JsonItem.body.ToString();
+                var client = new HttpClient();
+                var httpRequestMessage = new HttpRequestMessage()
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri("https://jsonplaceholder.typicode.com/" + mySbMsg),
 
-            // Get the connection made with SQL Server
-            con = new SqlConnection(@"Data Source=DESKTOP-N2E41F3;Initial Catalog=Company;Integrated Security=True;MultipleActiveResultSets=True");
-            con.Open();
+                };
 
-            // Insert the data in SQL tables called Res
-            cmd = new SqlCommand("INSERT INTO Res(UserId,Id,Title,Body) VALUES ( @UId,@Id,@Title,@Body)", con);
+                HttpResponseMessage response = client.SendAsync(httpRequestMessage).Result;
 
-            //Binding Parameters
-            cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
-            cmd.Parameters.Add("@UId", SqlDbType.Int).Value = Uid;
-            cmd.Parameters.Add("@Title", SqlDbType.VarChar).Value = title;
-            cmd.Parameters.Add("@Body", SqlDbType.VarChar).Value = body;
-            cmd.ExecuteNonQuery();
-            Console.WriteLine("done");
+                string responseBody = response.Content.ReadAsStringAsync().Result;
+                log.LogInformation(responseBody);
 
+                dynamic JsonItem = JsonConvert.DeserializeObject(responseBody);
+
+                //Getting all the attributes to be inserted in the sql table
+                int Uid = JsonItem.userId;
+                int id = JsonItem.id;
+                string title = JsonItem.title.ToString();
+                string body = JsonItem.body.ToString();
+
+                //Making object and calling the method for inserting the row in the table
+                var sqlOb = new Sql();
+                sqlOb.InsertToTable(Uid, id, title, body);
+                sqlOb.ConClose();
+                messageReceiver.DeadLetterAsync(message.SystemProperties.LockToken);
+               
+
+                Console.WriteLine("done");
+            }
+            catch(Exception e)
+            {
+                throw;
+            }
 
         }
-            
-        
+
+
+
     }
 }
