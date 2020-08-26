@@ -10,11 +10,17 @@ using Newtonsoft.Json;
 using Microsoft.Azure.ServiceBus;
 using System.Net.Http;
 using System.Text;
+using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Extensions.Configuration;
+using System.Configuration;
+using Microsoft.ApplicationInsights;
+using System.Diagnostics;
 
 namespace APISenderSide
 {
     public static class APIGet
     {
+        
         const string ServiceBusConnectionString = "Endpoint=sb://servicebuspractice.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=44Xtdc5DTF2dnGjGiRYnYAVfyPVCW3ZVM6boz8Ty/gE=";
         const string TopicName = "practicetopic";
         static ITopicClient topicClient;
@@ -22,9 +28,19 @@ namespace APISenderSide
         [FunctionName("APIGet")]
 
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req, ExecutionContext context,
             ILogger log)
         {
+            TelemetryClient telemetry = new TelemetryClient();
+            telemetry.InstrumentationKey = System.Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY");
+            string requestname = req.ToString();
+            var time = DateTime.Now;
+            var sw = Stopwatch.StartNew();
+            telemetry.Context.Operation.Id = Guid.NewGuid().ToString();
+
+
+
+            //TelemetryConfiguration.Active.ConfigurationKey = "66f3f1f9-ad96-458f-8de8-378deffd1c38";
             log.LogInformation("C# HTTP trigger function processed a request.");
 
             string messageBody = await new StreamReader(req.Body).ReadToEndAsync();
@@ -39,6 +55,7 @@ namespace APISenderSide
             await topicClient.CloseAsync();
 
 
+            telemetry.TrackRequest(requestname, time, sw.Elapsed, "200", true);
             return new OkObjectResult("Done");
         }
     }
