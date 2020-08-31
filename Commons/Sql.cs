@@ -14,7 +14,7 @@ namespace Commons
         public Sql()
         {
            
-    this.con = new SqlConnection(@"Data Source=DESKTOP-N2E41F3;Initial Catalog=Company;Integrated Security=True;MultipleActiveResultSets=True");
+    this.con = new SqlConnection(@"Data Source=ServerName;Initial Catalog=DbName;Integrated Security=True;MultipleActiveResultSets=True");
             this.con.Open();
 
 
@@ -28,7 +28,7 @@ namespace Commons
             //con.Open();
 
             //Insert the data in SQL tables called Res
-            cmd = new SqlCommand("INSERT INTO Res(UserId,Id,Title,Body) VALUES ( @UId,@Id,@Title,@Body)", con);
+            cmd = new SqlCommand("INSERT INTO TableName(UserId,Id,Title,Body) VALUES ( @UId,@Id,@Title,@Body)", con);
 
             //Binding Parameters
             cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
